@@ -3,7 +3,6 @@
 
 #include "Characters/Components/NMovementSystemComponent.h"
 #include "DrawDebugHelpers.h"
-// #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/NCharacter.h"
 #include "Characters/Components/NSpringArmComponent.h"
@@ -34,8 +33,6 @@ UNMovementSystemComponent::UNMovementSystemComponent()
 
 	DefaultCameraModeSettings = FCameraModeSettings(FCameraMode({0.f, 0.f, 80.f}, 4.f, 20.f, 200.f));
 
-	// RotationMode = ENRotationMode::VelocityDirection;
-
 	SetIsReplicatedByDefault(true);
 }
 
@@ -46,7 +43,7 @@ void UNMovementSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Interpolate between camera offset positions
-	if (bLocallyControlled)
+	if (Owner->IsLocallyControlled())
 	{
 		if (CameraSpringArmComponent && DesiredCameraSocketOffset != CameraSpringArmComponent->SocketOffset)
 		{
@@ -74,8 +71,14 @@ void UNMovementSystemComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 
 	// Replicated so we use them to figure out the aim offset for remote players
 	DOREPLIFETIME_CONDITION(UNMovementSystemComponent, QuantizedCameraRotationVector2D, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(UNMovementSystemComponent, CombatComponent, COND_SkipOwner);
+
+    // TODO CombatComponent may not need to be replicated here, should test
+    DOREPLIFETIME_CONDITION(UNMovementSystemComponent, CombatComponent, COND_SkipOwner);
+
+	// Replicated as this is used in anim blueprint for character stance
 	DOREPLIFETIME_CONDITION(UNMovementSystemComponent, CombatMode, COND_SkipOwner);
+
+    // TODO CameraSpringArmComponent may not need to be replicated here, should test
 	DOREPLIFETIME(UNMovementSystemComponent, CameraSpringArmComponent);
 }
 
@@ -90,12 +93,66 @@ void UNMovementSystemComponent::BeginPlay()
 
 void UNMovementSystemComponent::BeginDestroy()
 {
-	if (CombatComponent && bLocallyControlled)
+	if (CombatComponent && Owner->IsLocallyControlled())
 	{
 		CombatComponent->OnTargetUpdated.RemoveAll(this);
 	}
 
 	Super::BeginDestroy();
+}
+
+
+void UNMovementSystemComponent::Initialize()
+{
+    Owner = Cast<ACharacter>(GetOwner());
+    if (!Owner)
+    {
+        if (DebugMovementSystemComponent)
+        {
+            Print(GetWorld(), FString::Printf(TEXT("%s UNMovementSystemComponent Can only be attached to ACharacter derived classes."), *FString(__FUNCTION__)), EPrintType::ShutDown);
+        }
+
+        return;
+    }
+
+    if (Owner->IsLocallyControlled())
+    {
+        CameraSpringArmComponent = Owner->FindComponentByClass<UNSpringArmComponent>();
+        SetCombatComponent(Owner->FindComponentByClass<UNCombatComponent>());
+        SetRotationMode(ENRotationMode::VelocityDirection);
+        SetCameraModeToDefault();
+
+        if (DebugMovementSystemComponent && !CameraSpringArmComponent)
+        {
+            Print(GetWorld(), FString::Printf(TEXT("%s Owner does not have UNSpringArmComponent."), *FString(__FUNCTION__)), EPrintType::Error);
+        }
+    }
+}
+
+
+void UNMovementSystemComponent::SetCombatComponent(UNCombatComponent* InCombatComponent)
+{
+    if (!InCombatComponent){
+        if (DebugMovementSystemComponent)
+        {
+            Print(GetWorld(), FString::Printf(TEXT("%s <UNCombatComponent* InCombatComponent> was null."), *FString(__FUNCTION__)), EPrintType::Error);
+        }
+
+        return;
+    }
+
+    if (GetOwnerRole() != ROLE_Authority)
+    {
+        ServerSetCombatComponent(InCombatComponent);
+    }
+
+    CombatComponent = InCombatComponent;
+
+    if (Owner->IsLocallyControlled())
+    {
+        CombatComponent->OnTargetUpdated.AddDynamic(this, &UNMovementSystemComponent::OnTargetUpdated);
+        OnTargetUpdated(nullptr);
+    }
 }
 
 
@@ -199,10 +256,11 @@ void UNMovementSystemComponent::SetCombatType(ENCombatType InCombatType, bool bB
 	{
 		CombatType = InCombatType;
 
-		if (bBroadcast)
-		{
-			BroadcastSystemState();
-		}
+		// TODO add combat type to broadcast
+//		if (bBroadcast)
+//		{
+//			BroadcastSystemState();
+//		}
 	}
 	
 }
@@ -236,7 +294,7 @@ void UNMovementSystemComponent::SetCameraModeToDefault()
 
 void UNMovementSystemComponent::UpdateCameraState()
 {
-	if (bLocallyControlled && CameraSpringArmComponent)
+	if (Owner->IsLocallyControlled() && CameraSpringArmComponent)
 	{
 		const FCameraMode NewCameraMode = CameraModeSettings.GetCurrent(MovementGait);
 		
@@ -265,7 +323,7 @@ FRotator UNMovementSystemComponent::GetVelocityRotator() const
 
 FRotator UNMovementSystemComponent::GetCameraForwardRotator() const
 {	
-	if (bLocallyControlled && CameraSpringArmComponent)
+	if (Owner->IsLocallyControlled() && CameraSpringArmComponent)
 	{	
 		return (GetActorForwardRotator() + CameraSpringArmComponent->GetRelativeSocketRotation().Rotator()).GetNormalized();
 	}
@@ -300,71 +358,7 @@ float UNMovementSystemComponent::GetSpeed() const
 }
 
 
-void UNMovementSystemComponent::Initialize()
-{
-	// Owner = Cast<ANCharacterBase>(GetOwner());
-	Owner = Cast<ACharacter>(GetOwner());
-	
-	if (Owner && Owner->IsLocallyControlled())
-	{
-		bLocallyControlled = true;
-		SetCombatComponent(Owner->FindComponentByClass<UNCombatComponent>());
-		SetSpringArmComponent(Owner->FindComponentByClass<UNSpringArmComponent>());
-		SetRotationMode(ENRotationMode::VelocityDirection);
-		SetCameraModeToDefault();
-	}
-	else if (Owner->IsLocallyControlled())
-	{
-		if (DebugMovementSystemComponent)
-		{
-			Print(GetWorld(), FString::Printf(TEXT("%s UNMovementSystemComponent Can only be attached to ACharacter derived classes."), *FString(__FUNCTION__)), EPrintType::ShutDown);
-		}
-	}
-}
 
-
-void UNMovementSystemComponent::SetSpringArmComponent(UNSpringArmComponent* SpringArm)
-{
-	if (SpringArm)
-	{
-		CameraSpringArmComponent = SpringArm;
-	}
-	else
-	{
-		if (DebugMovementSystemComponent)
-		{
-			Print(GetWorld(), FString::Printf(TEXT("%s <UNSpringArmComponent* SpringArm> was null."), *FString(__FUNCTION__)), EPrintType::Error);
-		}
-	}
-}
-
-
-void UNMovementSystemComponent::SetCombatComponent(UNCombatComponent* InCombatComponent)
-{
-
-	if (InCombatComponent)
-	{
-		if (GetOwnerRole() != ROLE_Authority)
-		{
-			ServerSetCombatComponent(InCombatComponent);
-		}
-		
-		CombatComponent = InCombatComponent;
-		
-		if (bLocallyControlled)
-		{
-			CombatComponent->OnTargetUpdated.AddDynamic(this, &UNMovementSystemComponent::OnTargetUpdated);
-			OnTargetUpdated(nullptr);
-		}
-	}
-	else
-	{
-		if (DebugMovementSystemComponent)
-		{
-			Print(GetWorld(), FString::Printf(TEXT("%s <UNCombatComponent* InCombatComponent> was null."), *FString(__FUNCTION__)), EPrintType::Error);
-		}
-	}
-}
 
 FVector UNMovementSystemComponent::GetEyesLocation() const
 {
@@ -378,7 +372,7 @@ FVector UNMovementSystemComponent::GetEyesLocation() const
 void UNMovementSystemComponent::OnTargetUpdated(UPrimitiveComponent* InTarget)
 {
 	// Start NetUpdateTick if we are not targeting (need to replicate camera offset)
-	if (!InTarget && bLocallyControlled)
+	if (!InTarget && Owner->IsLocallyControlled())
 	{
 		GetWorld()->GetTimerManager().SetTimer(NetTickTimerHandle, this, &UNMovementSystemComponent::NetUpdateTick, 1 / AimOffsetNetUpdatesPerSecond, true);
 	}
