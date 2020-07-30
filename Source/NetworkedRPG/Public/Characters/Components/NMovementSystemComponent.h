@@ -8,7 +8,7 @@
 #include "NTypes.h"
 #include "NMovementSystemComponent.generated.h"
 
-
+// TODO create and move to NetTypes.h
 template<int32 MaxValue, int32 NumBits>
 bool SerializeFixedVector2D(FVector2D &Vector, FArchive& Ar)
 {
@@ -146,30 +146,101 @@ struct TStructOpsTypeTraits< FVector_NetQuantize2D > : public TStructOpsTypeTrai
 
 
 enum class ENCombatType : unsigned char;
+
+// TODO Remove this delegate and replace with FNotifyDelegate - same functionality
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNotifyListeners);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMovementSystemUpdatedDelegate, ENMovementGait, InMovementMode, ENRotationMode, InRotationMode, ENCombatMode, CombatMode);
 
+
+class UNSpringArmComponent;
+class UNCombatComponent;
+class ACharacter;
+
+/** Sections
+* 	1. Blueprint Settings
+* 	2. State
+* 	3. References
+* 	4. Overrides
+* 	5. Interface and Methods
+* 		5a. Equipments Slots
+* 		5b. Weapons
+* 		5c. Targeting
+* 	6. RPC's
+*/
+
+/**
+* This component handles the movement state and the camera of the character.
+* State is referenced from animation blueprint and combat component.
+* Can be added to characters implementing the INCombatComponentInterface.
+*/
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class NETWORKEDRPG_API UNMovementSystemComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-	/** State */
-	UPROPERTY(VisibleInstanceOnly, Category="MovementSystem|State")
-	bool bLocallyControlled;
-	UPROPERTY(VisibleInstanceOnly, Category="MovementSystem|State")
+public:
+    /** Sets default values for this component's properties */
+    UNMovementSystemComponent();
+
+protected:
+  /*****************************/
+ /**  1. Blueprint Settings  **/
+/*****************************/
+    /** The rate of net updates for aim offset when not targeting */
+    UPROPERTY(EditAnywhere, Category="Settings|Network")
+    float AimOffsetNetUpdatesPerSecond;
+
+    /** Interp speed for transitioning between camera offsets */
+    UPROPERTY(EditAnywhere, Category="Settings|Camera")
+    float CameraSocketOffsetInterpSpeed;
+
+    UPROPERTY(EditAnywhere, Category = "Settings|Camera")
+    FCameraModeSettings DefaultCameraModeSettings;
+
+
+  /*****************************/
+ /**      2. State           **/
+/*****************************/
+private:
+    /** Holds replicated version of the owning players camera rotation to be used for aim offset */
+    UPROPERTY(Replicated)
+    FVector_NetQuantize2D QuantizedCameraRotationVector2D;
+
+	UPROPERTY(VisibleInstanceOnly, Category="State")
 	ENMovementGait MovementGait;
-	UPROPERTY(VisibleInstanceOnly, Category="MovementSystem|State")
+
+	UPROPERTY(VisibleInstanceOnly, Category="State")
 	ENRotationMode RotationMode;
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category="MovementSystem|State")
+
+	UPROPERTY(Replicated, VisibleInstanceOnly, Category="State")
 	ENCombatMode CombatMode;
-	
+
+    FTimerHandle NetTickTimerHandle;
 	FVector DesiredCameraSocketOffset;
-	FTimerHandle NetTickTimerHandle;
 	ENCombatType CombatType;
 	FCameraModeSettings CameraModeSettings;
 
 
+  /*****************************/
+ /**      3. References      **/
+/*****************************/
+protected:
+    /** ** Replicated ** Reference to owners CameraSpringArmComponent. */
+    UPROPERTY(Replicated)
+    UNSpringArmComponent* CameraSpringArmComponent;
+
+    /** ** Replicated ** Reference to owners CombatComponent - Used to calculate aim offset. */
+    UPROPERTY(Replicated)
+    UNCombatComponent* CombatComponent;
+
+    /** The character that owns this component. */
+    UPROPERTY()
+    ACharacter* Owner;
+
+
+  /*****************************/
+ /**      4. Overrides       **/
+/*****************************/
 public:
     /** Handles Camera offset transitions while tick is active, and draws debug arrows if bDrawDebugArrows is true */
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -178,51 +249,29 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 protected:
-	/** Overriden to call Initialize() */
+	/** Overridden to call Initialize() */
     virtual void BeginPlay() override;
 
-	/** Overriden to remove CombatComponent->OnTargetActorUpdated delegate binding */
+	/** Overridden to remove CombatComponent->OnTargetActorUpdated delegate binding */
 	virtual void BeginDestroy() override;
 
-public:	
-	/** Sets default values for this component's properties */
-	UNMovementSystemComponent();
-	
-protected:
-	/** The rate of net updates for aim offset when not targeting */
-	UPROPERTY(EditAnywhere, Category="MovementSystem|Network")
-	float AimOffsetNetUpdatesPerSecond;
 
-	/** Interp speed for transitioning between camera socket offsets */
-	UPROPERTY(EditAnywhere, Category="MovementSystem|Camera")
-    float CameraSocketOffsetInterpSpeed;
+  /*****************************/
+ /** 5. Interface and Methods**/
+/*****************************/
+private:
+    /** Get required references and initialize camera state */
+    void Initialize();
 
-	UPROPERTY(EditAnywhere, Category = "MovementSystem|Camera")
-    FCameraModeSettings DefaultCameraModeSettings;
-
-protected:
-    /** Reference */
-    UPROPERTY()
-    class ACharacter* Owner;
-
-	/** Reference to owners CameraSpringArmComponent*/
-	UPROPERTY(Replicated)
-    class UNSpringArmComponent* CameraSpringArmComponent;
-
-	/** Reference to owners CombatComponent - Used to calculate aim offset */
-	UPROPERTY(Replicated)
-    class UNCombatComponent* CombatComponent;
-
-	/** Holds replicated version of the owning players camera rotation to be used for aim offset */
-	UPROPERTY(Replicated)
-    FVector_NetQuantize2D QuantizedCameraRotationVector2D;
+    /** [local] Called in Initialize(), sets combat component locally and on the server and binds OnTargetUpdated callback. */
+    void SetCombatComponent(UNCombatComponent* InCombatComponent);
 
 public:	
-	/** Returns the current MovementGait (ENMovementGait) */
+	/** Returns the current MovementGait. */
 	UFUNCTION(BlueprintCallable, Category="MovementSystem|Locomotion")
 	ENMovementGait GetMovementGait() const;
 	
-	/** Returns the current RotationMode (ENRotationMode) */
+	/** Returns the current RotationMode. */
 	ENRotationMode GetRotationMode() const;
 
 	/** Returns the current CombatMode (ENCombatMode) */
@@ -249,37 +298,25 @@ public:
 
 	void SetCombatType(ENCombatType InCombatType, bool bBroadcast = true);
 	
-	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerSetCombatMode(ENCombatMode InCombatMode, bool bBroadcast = true);
-	void ServerSetCombatMode_Implementation(ENCombatMode InCombatMode, bool bBroadcast = true);
-	bool ServerSetCombatMode_Validate(ENCombatMode InCombatMode, bool bBroadcast = true);
-	
-	/** [local] Broadcasts the current MovementGait, RotationMode, CameraMode, or CombatMode */
+	/** [local] Broadcasts the current MovementGait, RotationMode, CameraMode, and CombatMode */
 	void BroadcastSystemState() const;
 
 	/** Broadcasts whenever MovementGait, RotationMode, CameraMode, or CombatMode are updated,
-	* or when BroadcastSystemState() is called*/
+	* or when BroadcastSystemState() is called. */
 	UPROPERTY(BlueprintAssignable)
     FOnMovementSystemUpdatedDelegate OnSystemUpdated;
 	
-	/** [local] Updates the camera settings and sets DesiredCameraSocketOffset to interpolate to */
+	/** [local] Updates the camera settings and sets DesiredCameraSocketOffset to interpolate to. */
 	void SetCameraMode(FCameraModeSettings NewCameraState);
 
-	/** [local] Updates the camera settings to the default camera settings and sets DesiredCameraSocketOffset to interpolate to */
+	/** [local] Updates the camera settings to the default camera settings and sets DesiredCameraSocketOffset to interpolate to. */
 	void SetCameraModeToDefault();
 
 	void UpdateCameraState();
-	
-	// UFUNCTION(Server, Reliable, WithValidation)
-	// void ServerUpdateSocketOffset(FVector_NetQuantize InSocketOffset);
-	// void ServerUpdateSocketOffset_Implementation(FVector_NetQuantize InSocketOffset);
-	// bool ServerUpdateSocketOffset_Validate(FVector_NetQuantize InSocketOffset);
 
 
-	/**
-	 * Functions for AnimBlueprint
-	 */
-	
+/** Functions for AnimBlueprint */
+
 	/** MUST Call this before using getters in AnimBlueprints */
 	UFUNCTION(BlueprintCallable, Category="MovementSystem|Locomotion")
     bool OwnerIsValid() const { return Owner != nullptr; }
@@ -318,16 +355,8 @@ public:
 	*  Draws an arrow in the direction of the input Rotator */
 	UFUNCTION(BlueprintCallable, Category="MovementSystem|Locomotion")
     void DrawLocomotionDebugArrow(FRotator Rotator, FColor Color, float ZOffset) const;
-	
-	
+
 protected:
-
-	/** Get required references and initialize camera state */
-	void Initialize();
-
-	/** [local] Called in Initialize() */
-	void SetSpringArmComponent(class UNSpringArmComponent* SpringArm);
-	void SetCombatComponent(class UNCombatComponent* InCombatComponent);
 
 	/**  Returns the eyes location of the owning character */
 	FVector GetEyesLocation() const;
@@ -336,7 +365,6 @@ protected:
 	UFUNCTION()
     void OnTargetUpdated(UPrimitiveComponent* InTargetActor);
 
-
 	/** [local] Sets the Owner CharacterMovementComponent bOrientRotationToMovement property */
     void SetOrientRotationToMovement(bool Value);
 
@@ -344,10 +372,21 @@ protected:
 	 * updates the replicated version of the camera rotation for aim offset with ServerUpdateCameraRotation() */
 	void NetUpdateTick();
 
-	/**
-	 * RPC's
-	 */
-	
+    /** Draws an arrow in the direction the actor is facing (ForwardActorRotation) */
+    void DrawActorForwardRotator(FColor Color, float ZOffset) const;
+
+    /** Draws an arrow in the direction the actor is moving (VelocityRotationOffset) */
+    void DrawVelocityRotator(FColor Color, float ZOffset) const;
+
+    /** Draws an arrow in the direction the camera is facing (At its currently lagged position) */
+    void DrawCameraForwardRotator(FColor Color, float ZOffset);
+
+    /** Draws an arrow in the direction the player is looking (ForwardActorRotation + LookRotationOffset) */
+    void DrawCharacterLookRotator(FColor Color, float ZOffset);
+
+  /*****************************/
+ /**         6. RPC's        **/
+/*****************************/
 	/** Updates the replicated camera rotation to replicate the aim offset when not targeting.
 	* 	Called in NetUpdateTick(), which is only active while the player is not targeting, at
 	* 	at a rate set by AimOffsetNetUpdatesPerSecond. */
@@ -368,21 +407,10 @@ protected:
 	void ServerSetOrientRotationToMovement_Implementation(bool Value);
 	bool ServerSetOrientRotationToMovement_Validate(bool Value);
 
-	/**
-	 * Debug Helpers
-	 */
-	
-	/** Draws an arrow in the direction the actor is facing (ForwardActorRotation) */
-	void DrawActorForwardRotator(FColor Color, float ZOffset) const;
-
-	/** Draws an arrow in the direction the actor is moving (VelocityRotationOffset) */
-	void DrawVelocityRotator(FColor Color, float ZOffset) const;
-
-	/** Draws an arrow in the direction the camera is facing (At its currently lagged position) */
-	void DrawCameraForwardRotator(FColor Color, float ZOffset);
-
-	/** Draws an arrow in the direction the player is looking (ForwardActorRotation + LookRotationOffset) */
-	void DrawCharacterLookRotator(FColor Color, float ZOffset);
+    UFUNCTION(Server, Reliable, WithValidation)
+    void ServerSetCombatMode(ENCombatMode InCombatMode, bool bBroadcast = true);
+    void ServerSetCombatMode_Implementation(ENCombatMode InCombatMode, bool bBroadcast = true);
+    bool ServerSetCombatMode_Validate(ENCombatMode InCombatMode, bool bBroadcast = true);
 };
 
 
