@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerState.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayEffectTypes.h"
+#include "GameFramework/PlayerState.h"
 #include "NPlayerState.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FNOnGameplayAttributeValueChangedDelegate, FGameplayAttribute, Attribute, float, NewValue, float, OldValue);
@@ -20,9 +20,10 @@ class NETWORKEDRPG_API ANPlayerState : public APlayerState, public IAbilitySyste
 {
 	GENERATED_BODY()
 
-  /*****************************/
- /**   Reference Variables   **/
-/*****************************/
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 1. References
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 protected:
 	/** Holds the active ability system component for this player. */
 	UPROPERTY()
@@ -36,17 +37,17 @@ protected:
 	FDelegateHandle HealthChangedDelegateHandle;
 
 	
-  /*****************************/
- /**        Overrides        **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 2. Overrides
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 protected:
 	/** Called when the player state is created. */
 	virtual void BeginPlay() override;
 
 
-  /*****************************/
- /**        Interface        **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 3. Interface and Methods
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
 	/** Sets the default values for the PlayerState. */
 	ANPlayerState();
@@ -60,52 +61,62 @@ public:
 	/** Returns true if health > 0. */
 	bool IsAlive() const;
 
+	/** Returns Health from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetHealth() const;
+	float GetHealth() const;
 
+	/** Returns MaxHealth from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMaxHealth() const;
+	float GetMaxHealth() const;
 
+	/** Returns HealthRegenRate from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetHealthRegenRate() const;
+	float GetHealthRegenRate() const;
 
+	/** Returns Mana from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMana() const;
+	float GetMana() const;
 
+	/** Returns MaxMana from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMaxMana() const;
+	float GetMaxMana() const;
 
+	/** Returns ManaRegenRate from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetManaRegenRate() const;
+	float GetManaRegenRate() const;
 
+	/** Returns Stamina from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetStamina() const;
+	float GetStamina() const;
 
+	/** Returns MaxStamina from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMaxStamina() const;
+	float GetMaxStamina() const;
 
+	/** Returns StaminaRegenRate from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetStaminaRegenRate() const;
+	float GetStaminaRegenRate() const;
 
+	/** Returns Shield from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetShield() const;
+	float GetShield() const;
 
+	/** Returns MaxShield from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMaxShield() const;
+	float GetMaxShield() const;
 
+	/** Returns ShieldRegenRate from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetShieldRegenRate() const;
+	float GetShieldRegenRate() const;
 
+	/** Returns Armour from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetArmor() const;
+	float GetArmor() const;
 
+	/** Returns MoveSpeed from AttributeSet. */
 	UFUNCTION(BlueprintCallable, Category = "NPlayerState|Attributes")
-    float GetMoveSpeed() const;
-
+	float GetMoveSpeed() const;
 	
-  /*****************************/
- /**     Internal Methods    **/
-/*****************************/
 protected:
 	/** Called when health changes. */
 	virtual void HealthChanged(const FOnAttributeChangeData& Data);

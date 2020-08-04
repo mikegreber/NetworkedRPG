@@ -13,8 +13,14 @@
 				"GameplayAbilities",
 				"UMGEditor",
 				"UMG",
-				"AIModule"
+				"AIModule",
+				"CoreUObject"
 			]
+		},
+		{
+			"Name": "NetworkedMenu",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

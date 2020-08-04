@@ -21,6 +21,6 @@ public:
 	static float GetMaxAttributeUpdatesPerSecond() { return MAX_ATTRIBUTE_UPDATES_PER_SECOND; }
 
 	UFUNCTION(BlueprintCallable, Category="NetworkedRPG|AbilitySystem")
-    static float GetTimeBetweenAttributeUpdates() { return 1.0f / MAX_ATTRIBUTE_UPDATES_PER_SECOND; }
+	static float GetTimeBetweenAttributeUpdates() { return 1.0f / MAX_ATTRIBUTE_UPDATES_PER_SECOND; }
 	
 };

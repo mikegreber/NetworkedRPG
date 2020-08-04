@@ -19,26 +19,19 @@ static FVector AimingCameraOffset = FVector(250.f,100.f,80.f);
 // For Actor Components
 #define OwnerHasAuthority() (GetOwnerRole() == ROLE_Authority)
 
+int32 DebugCombatComponent = 0;
+
 UENUM(BlueprintType)
 enum class ENAbilityInputID : uint8
 {
-    // 0 None
     None				        UMETA(DisplayName = "None"),
-    // 1 Confirm
     Confirm				        UMETA(DisplayName = "Confirm"),
-    // 2 Cancel
     Cancel				        UMETA(DisplayName = "Cancel"),
-    // 3 Sprint
     Sprint				        UMETA(DisplayName = "Sprint"),
-    // 4 Jump
     Dodge				        UMETA(DisplayName = "Dodge"),
-    //5 Aim
     Aim    				        UMETA(DisplayName = "Aim"),
-    //6 Parry
     Parry    				    UMETA(DisplayName = "Parry"),
-    // 7 Primary Weapon Ability
     PrimaryWeaponAbility        UMETA(DisplayName = "Primary Weapon Ability"),
-    // 8 Secondary Weapon Ability
     SecondaryWeaponAbility      UMETA(DisplayName = "Secondary Weapon Ability"),
 };
 
@@ -70,7 +63,7 @@ enum class ENMovementGait : uint8
 
 /** This enum is used to determine the proper stance in the anim blueprint */
 UENUM(BlueprintType)
-enum class ENCombatMode : uint8
+enum class ENStance : uint8
 {
     // 0 Non-combat stance
     None				UMETA(DisplayName = "None"),

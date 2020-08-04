@@ -2,7 +2,7 @@
 
 
 #include "NAssetManager.h"
-
+#include "Items/Data/NItem.h"
 #include "AbilitySystemGlobals.h"
 
 const FPrimaryAssetType UNAssetManager::WeaponItemType = TEXT("WeaponItem");

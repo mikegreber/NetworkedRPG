@@ -4,11 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/ProgressBar.h"
-#include "Components/TextBlock.h"
-
-
 #include "NProgressWidget.generated.h"
+
+class UTextBlock;
+class UProgressBar;
 
 /**
  * 
@@ -18,51 +17,64 @@ class NETWORKEDRPG_API UNProgressWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 1. Blueprint Settings
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 protected:
+	UPROPERTY(EditAnywhere, Category="Settings")
+	bool bAnimate;
 	
-	virtual void NativeConstruct() override;
+	UPROPERTY(EditAnywhere, Category="Settings")
+	bool bConstantInterpolation;
+	
+	UPROPERTY(EditAnywhere, Category="Settings")
+	float UpInterpSpeed;
 
+	UPROPERTY(EditAnywhere, Category="Settings")
+	float DownInterpSpeed;
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 2. References and State
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	float CurrentValue;
+	float TargetValue;
+	float MaxValue;
+	float InterpSpeed;
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 2. Widget Components
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UProgressBar* ProgressBar;
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UTextBlock* PercentText;
-	
-	// Values for current state
-	UPROPERTY()
-	float Value;
-	
-	UPROPERTY()
-	float TargetValue;
+	UTextBlock* PercentText;
 
-	UPROPERTY()
-	float MaxValue;
-
-	UPROPERTY(EditAnywhere, Category="Default|Animation")
-    bool bAnimate;
 	
-	UPROPERTY(EditAnywhere, Category="Default|Animation")
-	bool bConstantInterpolation;
-	
-	UPROPERTY(EditAnywhere, Category="Default|Animation")
-	float UpInterpSpeed;
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 3. Overrides
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	virtual void NativeConstruct() override;
 
-	UPROPERTY(EditAnywhere, Category="Default|Animation")
-	float DownInterpSpeed;
-
-	UPROPERTY()
-	float InterpSpeed;
-	
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 3. Interface and Methods
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public:
+	/** Sets the percentage of the progress bar. */
+	void SetPercentage(float Current, float Max, float IntSpeed = -1.f);
+
+protected:
+	/** Called by SetPercentage to set the TargetValue so we can animate to the new value. */
+	void SetValue(float InValue);
+
+	/** Called by SetPercentage to set the MaxValue. */
+	void SetMaxValue(float InMaxValue);
+	
 	UFUNCTION()
 	void UpdatePercentage(float Current, float Max);
-	
-public:
-
-	void SetPercentage(float Current, float Max, float IntSpeed = -1.f);
-	
-	void SetValue(float InValue);
-	
-	void SetMaxValue(float InMaxValue);
 };

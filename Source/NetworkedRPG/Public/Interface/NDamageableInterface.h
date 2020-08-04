@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "AbilitySystemComponent.h"
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "NetworkedRPG/NetworkedRPG.h"
 #include "UObject/Interface.h"
 #include "NDamageableInterface.generated.h"
@@ -25,4 +25,9 @@ class NETWORKEDRPG_API INDamageableInterface
 public:
 
 	virtual ENTeam GetTeam() const = 0;
+
+	virtual void OnHit(float Strength, float ZRotation) const = 0;
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const = 0;
+
 };

@@ -10,5 +10,6 @@ public class NetworkedRPGEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		ExtraModuleNames.Add("NetworkedRPG");
+		ExtraModuleNames.Add("NetworkedMenu");
 	}
 }

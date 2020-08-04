@@ -2,12 +2,12 @@
 
 
 #include "Player/NPlayerController.h"
+#include "Components/Inventory/NInventoryComponent.h"
 #include "Blueprint/UserWidget.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "Player/NCharacter.h"
+#include "Characters/NCharacter.h"
 #include "UI/NHUDWidget.h"
 #include "Player/NPlayerState.h"
-#include "UI/NInventoryWidget.h"
+#include "UI/Inventory/NInventoryWidget.h"
 
 
 ANPlayerController::ANPlayerController()
@@ -22,6 +22,24 @@ void ANPlayerController::BeginPlay()
     CreateHUD();
 }
 
+
+void ANPlayerController::OnPossess(APawn* NewPawn)
+{
+    Super::OnPossess(NewPawn);
+
+    if (ANPlayerState* PS = GetPlayerState<ANPlayerState>())
+    {
+        PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, NewPawn);
+    }
+}
+
+
+void ANPlayerController::SetupInputComponent()
+{
+    Super::SetupInputComponent();
+}
+
+
 void ANPlayerController::CreateHUD()
 {
     if (UIHUDWidget || !IsLocalPlayerController())
@@ -31,7 +49,7 @@ void ANPlayerController::CreateHUD()
 
     if (!UIHUDWidgetClass)
     {
-        UKismetSystemLibrary::PrintString(GetWorld(), "ANPlayerController::CreateHUD() missing UIHUDWidgetClass. Please fill in on the blueprint for the player controller", true, true, FColor::Red);
+        Print(GetWorld(), FString::Printf(TEXT("%s UIHUDWidgetClass not set. Please set in Blueprint."), *FString(__FUNCTION__)), EPrintType::Error);
         return;
     }
 
@@ -54,23 +72,11 @@ void ANPlayerController::CreateHUD()
     }
 }
 
-void ANPlayerController::SetupInputComponent()
-{
-    Super::SetupInputComponent();
-    
-}
 
-UNHUDWidget* ANPlayerController::GetNHUD() const
+UNHUDWidget* ANPlayerController::GetHUDWidget() const
 {
     return UIHUDWidget; 
 }
 
-void ANPlayerController::OnPossess(APawn* aPawn)
-{
-    Super::OnPossess(aPawn);
 
-    if (ANPlayerState* PS = GetPlayerState<ANPlayerState>())
-    {
-        PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, aPawn);
-    }
-}
+

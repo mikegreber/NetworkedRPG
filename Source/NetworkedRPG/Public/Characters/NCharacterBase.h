@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "Interface/NDamageableInterface.h"
-#include "Interface/NGameplayAbilityActorInterface.h"
+#include "AbilitySystem/NGameplayAbilityActorInterface.h"
 #include "GameFramework/Character.h"
 #include "NCharacterBase.generated.h"
 
@@ -21,12 +21,11 @@ class USoundCue;
 class UNGameplayAbility;
 
 /** Sections
-* 	1. Blueprint Settings
-* 	2. Components
-* 	3. References
-* 	4. Overrides
-* 	5. Interface
-* 	6. Protected Methods
+*	1. Blueprint Settings
+*	2. Components
+*	3. References
+*	4. Overrides
+*	5. Interface and Methods
 */
 
 /** Character Base class for a character using the Gameplay Ability System. Subclass this for player characters and AI characters. */
@@ -36,72 +35,82 @@ class NETWORKEDRPG_API ANCharacterBase : public ACharacter, public IAbilitySyste
 	GENERATED_BODY()
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterDiedDelegate, ANCharacterBase*, InCharacter);
+	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDamageTakenDelegate, int8, Strength, FRotator, Rotation);
+	
+public:
+	/** Sets default values for this character's properties */
+	explicit ANCharacterBase(const FObjectInitializer& ObjectInitializer);
 
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 1. Blueprint Settings
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 protected:
-  /*****************************/
- /**  1. Blueprint Settings  **/
-/*****************************/
 	/** Determines who can damage who if friendly fire is off */
-	UPROPERTY(EditAnywhere, Category="Character")
+	UPROPERTY(EditAnywhere, Category="Settings")
 	ENTeam Team;
 	
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Character")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
 	FName CharacterName;
 
 	/** The montage to play when the the character dies. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Character|Animation")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings|Animation")
 	UAnimMontage* DeathMontage;
 
 	/** The sound to play when the the character dies. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Character|Audio")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings|Audio")
 	USoundCue* DeathSound;
 	
 	/** Default abilities for this Character. Will be removed on Character death and re-given if Character respawns. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Character|Abilities")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings|Abilities")
 	TArray<TSubclassOf<UNGameplayAbility>> CharacterAbilities;
  
 	/** Default attributes for a character for initializing on spawn or respawn.
 	  * This is an instance GE that overrides the values for attributes that get reset on spawn or respawn. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Character|Abilities")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings|Abilities")
 	TSubclassOf<UGameplayEffect> DefaultAttributes;
 
 	/* These effects are only applied one time on startup */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category="Character|Abilities")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category="Settings|Abilities")
 	TArray<TSubclassOf<UGameplayEffect>> StartupEffects;
 
 	
-  /*****************************/
- /**     2. Components       **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// 2. Components
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
 	/** **Replicated** */
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category="Character|MovementSystemComponent")
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category="Settings|Components")
 	UNMovementSystemComponent* MovementSystemComponent;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Character|CombatComponent")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings|Components")
 	UNCombatComponent* CombatComponent;
 
 	
-  /*****************************/
- /**     3. References       **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// 3. References
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:	
 	/** Static gameplay tags */
 	FGameplayTag DeadTag;
 	FGameplayTag EffectRemoveOnDeathTag;
 	FGameplayTag MaxStaminaTag;
 	
-	/** Reference to the ASC. It will live on the PlayerState or here if the character does not have a PlayerState. */
+	/** Reference to the ASC.
+	  * Will live on the PlayerState or here if the character does not have a PlayerState. */
 	UPROPERTY()
 	UNAbilitySystemComponent* AbilitySystemComponent;
 
-	/** Reference to the AttributeSetBase. It will live on the PlayerState or here if the character does not have a PlayerState. */
+	/** Reference to the AttributeSetBase.
+	  * Will live on the PlayerState or here if the character does not have a PlayerState. */
 	UPROPERTY()
 	UNAttributeSetBase* AttributeSetBase;
 
 
-  /*****************************/
- /**     4. Overrides        **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// 4. Overrides
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
 	/** Replicates MovementSystemComponent */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -111,22 +120,26 @@ public:
 
 	/** INDamageableInterface */
 	UFUNCTION(BlueprintCallable)
-    virtual ENTeam GetTeam() const override { return Team; }
-
+	virtual ENTeam GetTeam() const override { return Team; }
+	virtual void OnHit(float Strength, float ZRotation) const override;
+	
 	/** INGameplayAbilityActorInterface */
 	virtual USceneComponent* GetTraceStartComponent() const override { return GetMesh(); };
 
 protected:
-    /** Called when the game starts or when spawned */
-    virtual void BeginPlay() override;
+	/** Called when the game starts or when spawned */
+	virtual void BeginPlay() override;
 
 	
-  /*****************************/
- /**     5. Interface        **/
-/*****************************/
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// 5. Interface and Methods
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
-	/** Sets default values for this character's properties */
-	explicit ANCharacterBase(const FObjectInitializer& ObjectInitializer);
+	
+	// FOnDamageTakenDelegate OnDamageTaken;
+	
+	/** Fires when Die() is called. */
+	FOnCharacterDiedDelegate OnCharacterDied;
 
 	/** Returns the owner's MovementSystemComponent. */
 	virtual UNMovementSystemComponent* GetMovementSystemComponent() const { return MovementSystemComponent; }
@@ -136,65 +149,58 @@ public:
 
 	/** Returns true if health > 0. */
 	UFUNCTION(BlueprintCallable, Category="Character")
-    virtual bool IsAlive() const { return GetHealth() > 0; }
-
-	/** Fires when Die() is called. */
-	FOnCharacterDiedDelegate OnCharacterDied;
-
-	
-/** Ability System Getters **/
+	virtual bool IsAlive() const { return GetHealth() > 0; }
 	
 	/** Returns the owners attribute set */
 	virtual UNAttributeSetBase* GetAttributeSet() const { return AttributeSetBase; }
 
 	/** NOT IMPLEMENTED. Returns 1. Could be used for leveling of abilities of the character. */
 	UFUNCTION(BlueprintCallable, Category="Character")
-    virtual int32 GetAbilityLevel(ENAbilityInputID AbilityID) const;
+	virtual int32 GetAbilityLevel(ENAbilityInputID AbilityID) const;
 	
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    int32 GetCharacterLevel() const;
+	int32 GetCharacterLevel() const;
 		
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
 	float GetHealth() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMaxHealth() const;
+	float GetMaxHealth() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMana() const;
+	float GetMana() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMaxMana() const;
+	float GetMaxMana() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetStamina() const;
+	float GetStamina() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMaxStamina() const;
+	float GetMaxStamina() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetShield() const;
+	float GetShield() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMaxShield() const;
+	float GetMaxShield() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
-    float GetMoveSpeed() const;
+	float GetMoveSpeed() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Attributes")
 	float GetMoveSpeedBaseValue() const;
 
-
-  /*****************************/
- /**  6. Protected Methods   **/
-/*****************************/
+	UFUNCTION()
+	void ReceivedHit(float HitStrength, float ZRotation) const;
+	
 protected:
 	/** Called on from PlayerState on player death */
 	virtual void Die();
 
 	/** Called after death animation */
 	UFUNCTION(BlueprintCallable, Category = "Character")
-    virtual void FinishDying();
+	virtual void FinishDying();
 
 	/** [server] Grants all StartupAbilities the character. */
 	virtual void AddCharacterAbilities();
@@ -211,7 +217,7 @@ protected:
 	virtual void AddStartupEffects();
 
 	/** Setters for Attributes. Only use these in special cases like respawning, otherwise use a GE to change Attributes. */
-	virtual void SetHealth(float Health);
+	virtual void SetHealth(float Health);   
 	virtual void SetMana(float Mana);
 	virtual void SetStamina(float Stamina);
 	virtual void SetShield(float Shield);

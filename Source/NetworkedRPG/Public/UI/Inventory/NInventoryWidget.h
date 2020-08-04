@@ -1,0 +1,96 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "NInventoryWidget.generated.h"
+
+class UNInventoryItemWidget;
+class UVerticalBox;
+class UNInventoryComponent;
+class UButton;
+/**
+ * 
+ */
+UCLASS()
+class NETWORKEDRPG_API UNInventoryWidget : public UUserWidget
+{
+	GENERATED_BODY()
+
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 1. Blueprint Settings
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	TSubclassOf<UNInventoryItemWidget> InventoryItemClass;
+
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 2. References and State
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	bool bIsActive;
+	bool bInitialized;
+
+	UPROPERTY()
+	UNInventoryComponent* InventoryComponent;
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 3. Widget Components
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	UPROPERTY(meta = (BindWidget))
+	UVerticalBox* ItemList;
+
+	UPROPERTY(meta = (BindWidget))
+	UVerticalBox* EquipmentList;
+	
+	UPROPERTY(meta = (BindWidget))
+	UButton* CloseButton;
+	
+	UPROPERTY(meta = (BindWidget))
+	UButton* RefreshButton;
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 4. Overrides
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	/** Overriden to bind callbacks. */
+	virtual void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder) override;
+	
+public:
+	/** Overriden to remove callback bindings. */
+	virtual void RemoveFromParent() override;
+	
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 5. Interface and Methods
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public:
+	/** MUST CALL after CreateWidget<>(), before AddToParent() */
+	void Initialize(UNInventoryComponent* InInventoryComponent);
+
+	/** Updates the item and equipment lists. */
+	UFUNCTION()
+	void Update();
+
+protected:
+	/** Sets button bindings. */
+	void ActivateMenu();
+
+	/** Removes button bindings. */
+	void DeactivateMenu();
+
+	/** Updates the equipment list. */
+	UFUNCTION()
+	void UpdateEquipment();
+
+	/** Removes the widget from the viewport. */
+	UFUNCTION()
+	void CloseInventory();
+
+};

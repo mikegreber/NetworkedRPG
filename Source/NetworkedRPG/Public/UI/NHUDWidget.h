@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "AbilitySystemComponent.h"
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "AbilitySystemComponent.h"
 #include "NHUDWidget.generated.h"
 
 class UNProgressWidget;
+class UNAsyncTaskAttributeChanged;
+struct FGameplayAttribute;
+
 /**
  * 
  */
@@ -18,65 +21,77 @@ class NETWORKEDRPG_API UNHUDWidget : public UUserWidget
 
 	friend class ANPlayerController;
 
-	UPROPERTY()
-	float Health;
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 1. Blueprint Settings
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	/** Attributes to listen for. Must be set to update any values when attributes change. */
+	UPROPERTY(EditAnywhere, Category="Settings|Attributes")
+	TArray<FGameplayAttribute> Attributes;
 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 2. References
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	/** Listens for any attribute changes and fires */
 	UPROPERTY()
-	float MaxHealth;
+	UNAsyncTaskAttributeChanged* AttributeChangeListener;
 	
-	UPROPERTY()
-	float Shield;
-
-	UPROPERTY()
-	float MaxShield;
-
-	UPROPERTY()
-	float Mana;
-
-	UPROPERTY()
-	float MaxMana;
-
-	UPROPERTY()
-	float Stamina;
-
-	UPROPERTY()
-	float MaxStamina;
-
-public:
-
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 3. Widget Components
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
 	UPROPERTY(meta = (BindWidget))
 	UNProgressWidget* HealthProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
-    UNProgressWidget* ShieldProgressBar;
+	UNProgressWidget* ShieldProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
-    UNProgressWidget* ManaProgressBar;
+	UNProgressWidget* ManaProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
-    UNProgressWidget* StaminaProgressBar;
+	UNProgressWidget* StaminaProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
-    UNProgressWidget* StaminaProgressBarRaw;
+	UNProgressWidget* StaminaProgressBarRaw;
+
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 4. State
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 protected:
-	
+	float Health;
+	float MaxHealth;
+	float Shield;
+	float MaxShield;
+	float Mana;
+	float MaxMana;
+	float Stamina;
+	float MaxStamina;
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 5. Overrides
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
+	/** Initialize AttributeListener. */
 	virtual void NativeConstruct() override;
 
+	/** End AttributeListener. */
 	virtual void NativeDestruct() override;
 
-	// Attributes to listen for, must be set in blueprint.
-	UPROPERTY(EditAnywhere, Category="Attributes")
-	TArray<FGameplayAttribute> Attributes;
 
-	// Listner to
-	UPROPERTY()
-	class UNAsyncTaskAttributeChanged* AttributeChangeListener;
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// 6. Interface and Methods
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+protected:
 
-	// Called whenever an attribute changes to deal with updating the UI
+	/** Called whenever an attribute changes - Updates the UI. */
 	UFUNCTION()
 	void AttributeChanged(FGameplayAttribute Attribute, float NewValue, float OldValue);
 
+	/** Sets new value and then updates percentage in UI. */
 	void SetHealth(float InHealth);
 	void SetMaxHealth(float InMaxHealth);
 	void SetShield(float InShield);
@@ -85,7 +100,9 @@ protected:
 	void SetMaxStamina(float InMaxStamina);
 	void SetMana(float InMana);
 	void SetMaxMana(float InMaxMana);
-	
+
+private:
+	/** Called from within setters above to actually update the UI. */
 	void UpdateHealthPercentage(float Current, float Max) const;
 	void UpdateShieldPercentage(float Current, float Max) const;
 	void UpdateManaPercentage(float Current, float Max) const;

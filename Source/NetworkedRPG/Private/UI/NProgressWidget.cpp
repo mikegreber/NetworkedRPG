@@ -2,40 +2,34 @@
 
 
 #include "UI/NProgressWidget.h"
-
-
 #include "NetworkedRPG/NetworkedRPG.h"
-#include "Player/NPlayerState.h"
+#include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+
 
 void UNProgressWidget::NativeConstruct()
 {
     Super::NativeConstruct();
     
-    // Value = 0.f;
-    // TargetValue = 1.f;
-    // MaxValue = 1.f;
-    // bConstantInterpolation = false;
-    // UpInterpSpeed = 10.f;
-    // DownInterpSpeed = 10.f;   
 }
 
 void UNProgressWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
 
-    if (Value != TargetValue)
+    if (CurrentValue != TargetValue)
     {
         if (bAnimate)
         {    
-            InterpSpeed = MAX_ATTRIBUTE_UPDATES_PER_SECOND * FMath::Abs(TargetValue - Value);
-            Value = FMath::FInterpConstantTo(Value, TargetValue, InDeltaTime, InterpSpeed);
+            InterpSpeed = MAX_ATTRIBUTE_UPDATES_PER_SECOND * FMath::Abs(TargetValue - CurrentValue);
+            CurrentValue = FMath::FInterpConstantTo(CurrentValue, TargetValue, InDeltaTime, InterpSpeed);
         }
         else
         {
-            Value = TargetValue;
+            CurrentValue = TargetValue;
         }
 
-        UpdatePercentage(Value, MaxValue);
+        UpdatePercentage(CurrentValue, MaxValue);
     } 
 }
 
@@ -47,6 +41,11 @@ void UNProgressWidget::UpdatePercentage(float Current, float Max)
 
 void UNProgressWidget::SetPercentage(float Current, float Max, float IntSpeed)
 {
+    if (IntSpeed > 0)
+    {
+        InterpSpeed = IntSpeed;
+    }
+    
     SetValue(Current);
     SetMaxValue(Max);
 }
@@ -57,7 +56,7 @@ void UNProgressWidget::SetValue(float InValue)
 }
 
 void UNProgressWidget::SetMaxValue(float InMaxValue)
-{
+{    
     if (InMaxValue > 0.0f)
     {
         MaxValue = InMaxValue;

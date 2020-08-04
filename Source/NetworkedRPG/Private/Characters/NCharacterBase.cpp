@@ -2,21 +2,21 @@
 
 
 #include "Characters/NCharacterBase.h"
-#include "Abilities/NGameplayAbility.h"
-#include "Player/NAttributeSetBase.h"
-#include "Abilities/NAbilitySystemComponent.h"
+#include "AbilitySystem/GameplayAbilities/NGameplayAbility.h"
+#include "AbilitySystem/NAttributeSetBase.h"
+#include "AbilitySystem/NAbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "Player/NCharacterMovementComponent.h"
+#include "Components/NCharacterMovementComponent.h"
 #include "Player/NPlayerState.h"
 #include "Sound/SoundCue.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Characters/Components/NMovementSystemComponent.h"
-#include "Characters/Components/NCombatComponent.h"
+#include "Components/NMovementSystemComponent.h"
+#include "Components/Combat/NCombatComponent.h"
 
 
 FAutoConsoleVariableRef CVarDebugCharacter(
@@ -65,6 +65,12 @@ UAbilitySystemComponent* ANCharacterBase::GetAbilitySystemComponent() const
 		return PC->GetAbilitySystemComponent();
 	}
 	return AbilitySystemComponent;
+}
+
+
+void ANCharacterBase::OnHit(float Strength, float ZRotation) const
+{	
+	CombatComponent->ReceivedHit(Strength, ZRotation);
 }
 
 
@@ -196,6 +202,11 @@ float ANCharacterBase::GetMoveSpeedBaseValue() const
 	}
 
 	return 0.0f;
+}
+
+void ANCharacterBase::ReceivedHit(float HitStrength, float ZRotation) const
+{
+	CombatComponent->ReceivedHit(HitStrength, ZRotation);
 }
 
 void ANCharacterBase::Die()

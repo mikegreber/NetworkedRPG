@@ -2,9 +2,9 @@
 
 
 #include "Player/NPlayerState.h"
-#include "Player/NAttributeSetBase.h"
-#include "Player/NCharacter.h"
-#include "Abilities/NAbilitySystemComponent.h"
+#include "AbilitySystem/NAttributeSetBase.h"
+#include "Characters/NCharacter.h"
+#include "AbilitySystem/NAbilitySystemComponent.h"
 
 ANPlayerState::ANPlayerState()
 {

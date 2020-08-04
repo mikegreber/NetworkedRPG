@@ -4,31 +4,41 @@
 #include "UI/NHUDWidget.h"
 #include "Player/NPlayerState.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/NAsyncTaskAttributeChanged.h"
-#include "Player/NAttributeSetBase.h"
+#include "AbilitySystem/Tasks/NAsyncTaskAttributeChanged.h"
+#include "NetworkedRPG/NetworkedRPG.h"
+#include "AbilitySystem/NAttributeSetBase.h"
 #include "UI/NProgressWidget.h"
 
 void UNHUDWidget::NativeConstruct()
-{    
+{
+    Super::NativeConstruct();
+    
+    if (Attributes.Num() == 0)
+    {
+        Print(GetWorld(), FString::Printf(TEXT("%s No attributes set in BP."), *FString(__FUNCTION__)), EPrintType::Warning);
+        return;
+    }
+    
     ANPlayerState* PS = GetOwningPlayerState<ANPlayerState>();
-    if (PS && Attributes.Num() > 0)
+    if (!PS)
     {
-        UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
-        AttributeChangeListener = UNAsyncTaskAttributeChanged::ListenForAttributesChange(ASC, Attributes);
-        AttributeChangeListener->OnAttributeChanged.AddDynamic(this, &UNHUDWidget::AttributeChanged);
+        Print(GetWorld(), FString::Printf(TEXT("%s PlayerState not initialized"), *FString(__FUNCTION__)), EPrintType::Error);
+        return;
     }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("Player State Not Initialized on %d!"), GetOwningPlayer()->HasAuthority())
-    }
+    
+    UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
+    AttributeChangeListener = UNAsyncTaskAttributeChanged::ListenForAttributesChange(ASC, Attributes);
+    AttributeChangeListener->OnAttributeChanged.AddDynamic(this, &UNHUDWidget::AttributeChanged);
 }
+
 
 void UNHUDWidget::NativeDestruct()
 {
-    Super::NativeDestruct();
-
     AttributeChangeListener->EndTask();
+
+    Super::NativeDestruct();
 }
+
 
 void UNHUDWidget::AttributeChanged(FGameplayAttribute Attribute, float NewValue, float OldValue)
 {
@@ -65,10 +75,10 @@ void UNHUDWidget::AttributeChanged(FGameplayAttribute Attribute, float NewValue,
     {
         SetMaxStamina(NewValue);
     }
-    else if (AtName == "HealthRegenRate")
-    {
-        // SetHealthRegenRate(NewValue);
-    }
+    // else if (AtName == "HealthRegenRate")
+    // {
+    //     SetHealthRegenRate(NewValue);
+    // }
 }
 
 void UNHUDWidget::SetHealth(float InHealth)
@@ -137,7 +147,7 @@ void UNHUDWidget::UpdateManaPercentage(float Current, float Max) const
 void UNHUDWidget::UpdateStaminaPercentage(float Current, float Max) const
 {
     StaminaProgressBar->SetPercentage(Current, Max);
-    StaminaProgressBarRaw->SetPercentage(Current, Max);
+    // StaminaProgressBarRaw->SetPercentage(Current, Max);
 }
 
 
