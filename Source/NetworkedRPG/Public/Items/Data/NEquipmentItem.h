@@ -25,13 +25,13 @@ struct FAttachmentOffset
 UENUM(BlueprintType)
 enum class ENEquipmentSocket : uint8
 {
-    None						UMETA(DisplayName = "None"),
-    RightHandSocket	    		UMETA(DisplayName = "RightHandSocket"),
-    LeftHandSocket				UMETA(DisplayName = "LeftHandSocket"),
-    LeftHolsterSocket   		UMETA(DisplayName = "LeftHolsterSocket"),
-    RightHolsterSocket			UMETA(DisplayName = "RightHolsterSocket"),
-    UpperBackHolsterSocket    	UMETA(DisplayName = "UpperBackHolsterSocket"),
-    HeadSocket    	            UMETA(DisplayName = "HeadSocket"),
+    None                      UMETA(DisplayName = "None"),
+    RightHandSocket           UMETA(DisplayName = "RightHandSocket"),
+    LeftHandSocket            UMETA(DisplayName = "LeftHandSocket"),
+    LeftHolsterSocket         UMETA(DisplayName = "LeftHolsterSocket"),
+    RightHolsterSocket        UMETA(DisplayName = "RightHolsterSocket"),
+    UpperBackHolsterSocket    UMETA(DisplayName = "UpperBackHolsterSocket"),
+    HeadSocket                UMETA(DisplayName = "HeadSocket"),
 };
 
 /**
